@@ -36,6 +36,7 @@ export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 python main.py
 ```
+<img width="1470" alt="Screenshot 2025-04-17 at 3 19 34 PM" src="https://github.com/user-attachments/assets/479f024c-1064-4f2e-b5b0-1dd4252d6d31" />
 
 ---
 
