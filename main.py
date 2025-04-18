@@ -29,66 +29,52 @@ async def call_agent_async(query: str,runner: Runner,session_id:str,user_id:str)
 
   print(f"<<< Agent Response: {final_response_text}")
 
-async def GetWeatherInformationWithContextAsync(session_service):
-    initial_state = {
+async def GetWeatherInformationWithContextAsync():
+   initial_state = {
       "user_preference_temperature_unit": "Celsius"
    }
+   APP_NAME = "weather_agent_team"
+   USER_ID = "user_team_1"
+   SESSION_ID = "session_team_1"
 
-    agent_team = WeatherAgentTeam()
-    session_service.create_session(
-       app_name="weather_agent_team", 
-       user_id="user_team_1", 
-       session_id="session_team_1", 
-       state=initial_state
-   )
-    runner3 = Runner(agent=agent_team.agent, session_service=session_service, app_name="weather_agent_team")
-   
-    print("\n--- Testing State: Temp Unit Conversion & output_key ---")
+   agent_team = WeatherAgentTeam()
+   stateful_session_service = InMemorySessionService()
+   stateful_session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID, state=initial_state)
+   runner3 = Runner(agent=agent_team.agent, session_service=stateful_session_service, app_name=APP_NAME)
+
+   print("--- Testing State: Temp Unit Conversion & output_key ---")
 
    # 1. Check weather (Uses initial state: Celsius)
-    print("--- Turn 1: Requesting weather in Hanoi (expect Celsius) ---")
-    await call_agent_async(query= "What's the weather in Hanoi?",runner=runner3,user_id="user_team_1",session_id="session_team_1")
+   print("--- Turn 1: Requesting weather in Hanoi (expect Celsius) ---")
+   await call_agent_async(query= "What's the weather in Hanoi?",runner=runner3,user_id=USER_ID,session_id=SESSION_ID)
 
    # 2. Update state preference to Fahrenheit
-    print("\n--- Updating State: Setting unit to Fahrenheit ---")
-    try:
-         # Get the current session
-          current_session = session_service.get_session(
-             app_name="weather_agent_team", 
-             user_id="user_team_1", 
-             session_id="session_team_1"
+   print("--- Updating State: Setting unit to Fahrenheit ---")
+   try:
+      # Get the current session
+         current_session = stateful_session_service.get_session(
+            app_name=APP_NAME, 
+            user_id=USER_ID, 
+            session_id=SESSION_ID
          )
-         # Create a new session with updated state
-          new_state = dict(current_session.state)
-          new_state["user_preference_temperature_unit"] = "Fahrenheit"
-          updated_session = session_service.create_session(
-             app_name="weather_agent_team",
-             user_id="user_team_1",
-             session_id="session_team_1",
-             state=new_state
-         )
-          print(f"--- Session state updated. Current 'user_preference_temperature_unit': {updated_session.state['user_preference_temperature_unit']} ---")
-    except Exception as e:
-          print(f"--- Error updating session state: {e} ---")
+      # Create a new session with updated state
+         new_state = dict(current_session.state)
+         new_state["user_preference_temperature_unit"] = "Fahrenheit"
+         updated_session = stateful_session_service.create_session(app_name=APP_NAME,user_id=USER_ID,session_id=SESSION_ID,state=new_state)
+         print(f"--- Session state updated. Current 'user_preference_temperature_unit': {updated_session.state['user_preference_temperature_unit']} ---")
+   except Exception as e:
+         print(f"--- Error updating session state: {e} ---")
 
    # 3. Check weather again (Tool should now use Fahrenheit)
-    print("\n--- Turn 2: Requesting weather in Danang (expect Fahrenheit) ---")
-    await call_agent_async(query= "Tell me the weather in Danang.",
-                           runner=runner3,
-                           user_id="user_team_1",
-                           session_id="session_team_1"
-                           )
+   print("--- Turn 2: Requesting weather in Danang (expect Fahrenheit) ---")
+   await call_agent_async(query= "Tell me the weather in Danang.",runner=runner3,user_id=USER_ID,session_id=SESSION_ID)
 
    # 4. Test basic delegation (should still work)
-    print("\n--- Turn 3: Sending a greeting ---")
-    await call_agent_async(query= "Hi!",
-                           runner=runner3,
-                           user_id="user_team_1",
-                           session_id="session_team_1"
-                           )
+   print("--- Turn 3: Sending a greeting ---")
+   await call_agent_async(query= "Hi!",runner=runner3,user_id=USER_ID,session_id=SESSION_ID)
     
 async def main():
-   # Initialize session service for memory storage
+   # Initialize non-context session service for memory storage
    session_service = InMemorySessionService()
    
    # Initialize agents
@@ -102,7 +88,7 @@ async def main():
    runner2 = Runner(agent=weatherAgentClaude.agent, session_service=session_service, app_name="weather_agent_claude")
    await call_agent_async("What is the weather like in HoChiMinh?", runner2, session2.id, session2.user_id)
 
-   await GetWeatherInformationWithContextAsync(session_service)
+   await GetWeatherInformationWithContextAsync()
  
 if __name__ == "__main__":
     asyncio.run(main())
