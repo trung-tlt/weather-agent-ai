@@ -4,6 +4,7 @@ from google.genai import types # For creating message Content/Parts
 from agents.weather_agent_gpt4o import WeatherAgentGPT4o
 from agents.weather_agent_claude import WeatherAgentClaude
 from agents.weather_agent_team import WeatherAgentTeam
+from google.adk.sessions import InMemorySessionService
 
 async def call_agent_async(query: str,runner: Runner,session_id:str,user_id:str):
   """Sends a query to the agent and prints the final response."""
@@ -33,20 +34,26 @@ async def call_agent_async(query: str,runner: Runner,session_id:str,user_id:str)
   print(f"<<< Agent Response: {final_response_text}")
     
 async def main():
+   # Initialize session service for memory storage
+   session_service = InMemorySessionService()
    
-   # agent1 = WeatherAgentGPT4o()
-   # agent1.create_agent()
-   # await call_agent_async("What is the weather like in Hanoi?",agent1.runner,agent1.session_id,agent1.user_id)
+   # Initialize agents
+   weatherAgentGPT4o = WeatherAgentGPT4o()
+   session1 = session_service.create_session(app_name="weather_agent_gpt4o", user_id="user_gpt4o_1", session_id="session_gpt4o_1")
+   runner1 = Runner(agent=weatherAgentGPT4o.agent, session_service=session_service, app_name="weather_agent_gpt4o")
+   await call_agent_async("What is the weather like in Hanoi?", runner1, session1.id, session1.user_id)
 
-   # agent2 = WeatherAgentClaude()
-   # agent2.create_agent()
-   # await call_agent_async("What is the weather like in Dong Nai?",agent2.runner,agent2.session_id,agent2.user_id)
+   weatherAgentClaude = WeatherAgentClaude()
+   session2 = session_service.create_session(app_name="weather_agent_claude", user_id="user_claude_1", session_id="session_claude_1")
+   runner2 = Runner(agent=weatherAgentClaude.agent, session_service=session_service, app_name="weather_agent_claude")
+   await call_agent_async("What is the weather like in HoChiMinh?", runner2, session2.id, session2.user_id)
 
    agent_team = WeatherAgentTeam()
-   agent_team.init()
-   await call_agent_async("Hello?",agent_team.runner,agent_team.session_id,agent_team.user_id)
-   await call_agent_async("What is the weather like in Hanoi?",agent_team.runner,agent_team.session_id,agent_team.user_id)
-   await call_agent_async("Thank you!",agent_team.runner,agent_team.session_id,agent_team.user_id)
+   session3 = session_service.create_session(app_name="weather_agent_team", user_id="user_team_1", session_id="session_team_1")
+   runner3 = Runner(agent=agent_team.agent, session_service=session_service, app_name="weather_agent_team")
+   await call_agent_async("Hello?",runner3,session3.id,session3.user_id)
+   await call_agent_async("What is the weather like in Hanoi?",runner3,session3.id,session3.user_id)
+   await call_agent_async("Thank you!",runner3,session3.id,session3.user_id)
  
 if __name__ == "__main__":
     asyncio.run(main())
